@@ -63,8 +63,8 @@ export async function generateMetadata({ params, searchParams }) {
       formattedDate = eventDay.toLocaleDateString("es-ES", {
         weekday: "long",
         day: "numeric",
-        month: "long",
-        year: "numeric",
+        // month: "long",
+        // year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
         timeZone: "America/Argentina/Buenos_Aires",
@@ -84,7 +84,7 @@ export async function generateMetadata({ params, searchParams }) {
       siteName: "Mavale Eventos",
       images: [
         {
-          url: `${baseUrl}/invitation/background.jpg`,
+          url: `${baseUrl}/invitation/background-meta.jpg`,
           width: 1200,
           height: 630,
           alt: "Fondo de invitación para el evento",
