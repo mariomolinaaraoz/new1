@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
-import Navbar from "./Navbar";
 import UploadButton from "./UploadButton";
 import Image from "next/image";
 import CountdownTimer from "./CountdownTimer";
@@ -348,8 +347,7 @@ useEffect(() => {
   };
 
   return (
-    <div>
-      <Navbar />
+    <div>      
       <div className="max-w-4xl mx-auto p-6">
         {unseenPhotos.length > 0 && (
           <div className="fixed top-20 right-4 z-50">

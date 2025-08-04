@@ -1,5 +1,6 @@
 //app/event/[slug]/page.js
 import ProtectedRoute from "@/components/ProtectedRoute";
+import Navbar from "@/components/Navbar";
 import EventClient from "@/components/EventClient";
 import { createClient } from "@supabase/supabase-js";
 
@@ -27,7 +28,8 @@ export default async function EventPage({ params }) {
 
   return (
     <ProtectedRoute>
-      <EventClient event={event} />
+      <Navbar event={event}/>
+      <EventClient event={event}/>
     </ProtectedRoute>
   );
 }

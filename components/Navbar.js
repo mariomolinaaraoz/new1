@@ -9,7 +9,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-export default function Navbar() {
+export default function Navbar({ event }) {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -84,9 +84,8 @@ export default function Navbar() {
       setLoading(true);
       await supabase.auth.signOut();
       setUser(null);
-      setUserProfile(null);
-      localStorage.removeItem('pendingEvent');      
-      router.push('/');
+      setUserProfile(null);            
+      router.push(`/thanks?event=${event.id}`);
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     } finally {
