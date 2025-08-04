@@ -4,9 +4,12 @@ import Image from "next/image";
 import IrEventoButton from "@/components/IrEventoButton";
 import EventoButton from "@/components/EventoButton";
 import NoPuedoButton from "@/components/NoPuedoButton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import CountdownTimer from "@/components/CountdownTimer";
-import CopyCbuButton from "@/components/CopyCbuButton";
+import RegalosModal from "@/components/RegaloModal";
 import { Bonheur_Royale } from "next/font/google";
+
 import { Henny_Penny } from "next/font/google";
 
 // 1. Cargar fuentes de forma óptima
@@ -359,11 +362,15 @@ export default async function LoginPage({ params, searchParams }) {
               </CountdownTimer>
             </div>
 
-            <CopyCbuButton />
+            <RegalosModal />
+
+            
+
+            {/* <CopyCbuButton /> */}
           </CardContent>
 
           <CardFooter
-            className="bg-gray-50/20 backdrop-blur-[6px] flex items-center justify-center h-6 mx-4 border-t border-gray-200/50 rounded-t-lg md:rounded-lg pt-0 -mt-2"
+            className="bg-gray-50/20 backdrop-blur-[6px] flex items-center justify-center h-6 mx-4 border-t border-gray-200/50 rounded-t-lg md:rounded-lg pt-0 -mt-6"
           >
             <p className="text-gray-500 text-xs sm:text-sm text-center leading-none pb-6">
               © {new Date().getFullYear()} Mavale. Todos los derechos reservados.

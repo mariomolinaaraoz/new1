@@ -29,14 +29,13 @@ export default function CopyCBU() {
   };
 
   return (
-    <div className="flex items-baseline mt-0">
-      <span className="text-2xl mr-1">🎁</span>
+    <div className="flex flex-col mt-0">      
       <div
         onClick={handleCopy}
         className="relative mt-4 flex items-center justify-between w-full max-w-sm px-4 py-1 bg-gray-200/70 rounded-lg shadow cursor-pointer group"
         title="Copiar CBU"
       >
-        <span className="text-gray-800 font-mono text-sm mr-2">NUMERO DE CBU</span>
+        <span className="text-gray-800 font-mono text-sm mr-2">{CBU}</span>
 
         {/* Ícono dinámico */}
         {copied ? (
@@ -58,7 +57,7 @@ export default function CopyCBU() {
           </div>
         )}
       </div>
-      <span className="text-2xl ml-1">🎁</span>
+
 
       <style jsx>{`
         .animate-fade-in {
