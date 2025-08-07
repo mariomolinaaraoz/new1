@@ -179,7 +179,7 @@ export default function DashboardPage() {
   const totalAdults = guests.reduce((sum, g) => sum + (g.adult || 0), 0);
   const totalChildren = guests.reduce((sum, g) => sum + (g.children || 0), 0);
   const totalGuests = totalAdults + totalChildren;
-  const totalConfirm = guests.reduce((sum, g) => sum + (g.confirm || 0), 0);
+  const totalConfirm = guests.reduce((sum, g) => sum + (g.confirm || 0), 0);  
   const totalNoConfirm = totalGuests - totalConfirm;
 
   // Etiquetas para columnas de búsqueda
@@ -332,7 +332,7 @@ export default function DashboardPage() {
                         <TableCell className="font-medium">{guest.full_name}</TableCell>
                         <TableCell>{guest.adult || 0}</TableCell>
                         <TableCell>{guest.children || 0}</TableCell>
-                        <TableCell>{guest.confirm ? "✅" : "❌"}</TableCell>
+                        <TableCell>{guest.confirm === null ? "" : guest.confirm ? "✅" : "❌"}</TableCell>
                         <TableCell>
                           {guest.confirm_at ? (
                             <div className="flex flex-col">
