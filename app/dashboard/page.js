@@ -121,6 +121,27 @@ const formatDate = (dateString) => {
   ];
 };
 
+const formatDate1 = (dateString) => {
+  if (!dateString) return null;
+
+  // Interpretar como UTC
+  const date = new Date(dateString);
+
+  return [
+    date.toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+      timeZone: "America/Argentina/Buenos_Aires",
+    }),
+    date.toLocaleTimeString("es-ES", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "America/Argentina/Buenos_Aires",
+    }) + " hs.",
+  ];
+};
+
   // Ordenar invitados
   const sortedGuests = useMemo(() => {
     const sortableGuests = [...guests];
@@ -252,7 +273,7 @@ const formatDate = (dateString) => {
                     <div>
                       <h3 className="font-semibold text-lg mb-2">{selectedEvent.title}</h3>
                       <p className="text-muted-foreground">
-                        📅 {formatDate(selectedEvent.day)[0]} a las {formatDate(selectedEvent.day)[1]}
+                        📅 {formatDate1(selectedEvent.day)[0]} a las {formatDate1(selectedEvent.day)[1]}                        
                       </p>
                     </div>
                   </div>
