@@ -107,8 +107,7 @@ export default async function LoginPage({ params, searchParams }) {
 
   const slug = awaitedParams?.slug || "";
   const guestId = awaitedSearchParams?.guestId || "";
-  // --- FIN CORRECCIÓN 1 ---
-
+  
   if (!slug || !guestId) {
     return (
       <div className="flex bg-gradient-to-br from-blue-100 to-indigo-100 justify-center min-h-screen items-center p-4">
@@ -140,6 +139,28 @@ export default async function LoginPage({ params, searchParams }) {
         <Card className="w-[95%] max-w-md p-6 text-center">
           <h1 className="text-xl font-bold text-red-600">Error</h1>
           <p className="text-gray-700 mt-2">Evento o invitado no encontrado.</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (event.active===false) {
+    return (
+      <div className="flex bg-gradient-to-br from-blue-100 to-indigo-100 justify-center min-h-screen items-center p-4">
+        <Card className="w-[95%] max-w-md p-6 text-center">
+          <h1 className="text-xl font-bold text-red-600">Evento Terminado</h1>
+          <p className="text-gray-700 mt-2">Gran evento, te esperamos en el próximo.</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (guest.confirm===false) {
+    return (
+      <div className="flex bg-gradient-to-br from-blue-100 to-indigo-100 justify-center min-h-screen items-center p-4">
+        <Card className="w-[95%] max-w-md p-6 text-center">
+          <h1 className="text-xl font-bold text-red-600">No, podré asistir.</h1>
+          <p className="text-gray-700 mt-2">Lamentamos, que no puedas asistir.</p>
         </Card>
       </div>
     );
@@ -337,6 +358,7 @@ export default async function LoginPage({ params, searchParams }) {
                     />
                     <NoPuedoButton
                       eventSlug={event.slug}
+                      guestId={guest.id}
                       label="No, asistiré"
                       className="w-full"
                     />

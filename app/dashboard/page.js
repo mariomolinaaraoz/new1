@@ -1,12 +1,11 @@
-// app/dashboard/page.js
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { QRCodeCanvas } from "qrcode.react";
+import { GuestModal } from "@/components/GuestModal";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -22,36 +21,56 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ArrowUpDown, Search, X } from "lucide-react";
 
 export default function DashboardPage() {
-  const router = useRouter();
+  // Estados principales
   const [events, setEvents] = useState([]);
   const [guests, setGuests] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [selectedGuest, setSelectedGuest] = useState(null);
+  
+  // Estados para búsqueda
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchColumn, setSearchColumn] = useState("full_name"); // Búsqueda por nombre por defecto
 
+  // Estados para ordenación
+  const [sortConfig, setSortConfig] = useState({
+    key: 'full_name',
+    direction: 'ascending',
+  });
+
+  // Cargar eventos y seleccionar el primero automáticamente
   useEffect(() => {
-    const fetchEvents = async () => {
-      const { data, error } = await supabase.from("events").select("*");
-      if (!error) setEvents(data);
+    const fetchEventsAndGuests = async () => {
+      const { data: eventsData, error: eventsError } = await supabase.from("events").select("*");
+      
+      if (eventsError) {
+        console.error("Error fetching events:", eventsError.message);
+        return;
+      }
+      
+      setEvents(eventsData);
+      
+      if (eventsData?.length > 0) {
+        const firstEvent = eventsData[0];
+        setSelectedEvent(firstEvent);
+        await fetchGuests(firstEvent.id);
+      }
     };
-    fetchEvents();
+    
+    fetchEventsAndGuests();
   }, []);
 
-  const handleEventChange = async (eventId) => {
-    // Limpiar selecciones anteriores
-    setSelectedGuest(null);
-
-    // Si se selecciona el placeholder, limpiar todo
-    if (eventId === "placeholder") {
-      setSelectedEvent(null);
-      setGuests([]);
-      return;
-    }
-
-    const event = events.find((e) => e.id === eventId);
-    setSelectedEvent(event);
-
+  // Función para cargar invitados de un evento
+  const fetchGuests = async (eventId) => {
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -67,43 +86,114 @@ export default function DashboardPage() {
     }
   };
 
-  const handleGuestChange = (guestId) => {
-    // Si se selecciona el placeholder, limpiar invitado
-    if (guestId === "placeholder") {
-      setSelectedGuest(null);
+  // Manejar cambio de evento
+  const handleEventChange = async (eventId) => {
+    if (eventId === "placeholder") {
+      setSelectedEvent(null);
+      setGuests([]);
       return;
     }
 
-    const guest = guests.find((g) => g.id === guestId);
-    setSelectedGuest(guest);
+    const event = events.find((e) => e.id === eventId);
+    setSelectedEvent(event);
+    await fetchGuests(eventId);
   };
 
-  const handleInvitationClick = () => {
-    if (!selectedEvent || !selectedGuest) {
-      alert("Debes seleccionar un evento y un invitado.");
-      return;
-    }
-
-    const url = `/invitation/${selectedEvent.slug}?guestId=${selectedGuest.id}`;
-    router.push(url);
-  };
-
-  // Función para formatear fechas
+  // Formatear fechas
   const formatDate = (dateString) => {
-    if (!dateString) return "Fecha no disponible";
-
-    return new Date(dateString).toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    return [
+      date.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "2-digit" }),
+      date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) + " hs."
+    ];
   };
 
+  // Ordenar invitados
+  const sortedGuests = useMemo(() => {
+    const sortableGuests = [...guests];
+    if (sortConfig.key) {
+      sortableGuests.sort((a, b) => {
+        // Manejo especial para fechas
+        if (sortConfig.key === 'confirm_at') {
+          const dateA = a[sortConfig.key] ? new Date(a[sortConfig.key]) : null;
+          const dateB = b[sortConfig.key] ? new Date(b[sortConfig.key]) : null;
+
+          if (!dateA && !dateB) return 0;
+          if (!dateA) return sortConfig.direction === 'ascending' ? 1 : -1;
+          if (!dateB) return sortConfig.direction === 'ascending' ? -1 : 1;
+
+          return sortConfig.direction === 'ascending' ? dateA - dateB : dateB - dateA;
+        }
+
+        // Manejo especial para booleanos
+        if (sortConfig.key === 'confirm') {
+          return sortConfig.direction === 'ascending'
+            ? (a.confirm === b.confirm ? 0 : a.confirm ? -1 : 1)
+            : (a.confirm === b.confirm ? 0 : a.confirm ? 1 : -1);
+        }
+
+        // Ordenación estándar
+        if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'ascending' ? -1 : 1;
+        if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'ascending' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableGuests;
+  }, [guests, sortConfig]);
+
+  // Filtrar invitados según búsqueda
+  const filteredGuests = useMemo(() => {
+    if (!searchTerm) return sortedGuests;
+
+    return sortedGuests.filter(guest => {
+      const value = guest[searchColumn];
+      if (!value) return false;
+      
+      // Búsqueda para booleanos (confirm)
+      if (searchColumn === 'confirm') {
+        return searchTerm.toLowerCase() === 'si' ? guest.confirm : 
+               searchTerm.toLowerCase() === 'no' ? !guest.confirm : false;
+      }
+      
+      // Búsqueda para fechas
+      if (searchColumn === 'confirm_at') {
+        const dateStr = formatDate(value).join(' ').toLowerCase();
+        return dateStr.includes(searchTerm.toLowerCase());
+      }
+      
+      // Búsqueda estándar
+      return value.toString().toLowerCase().includes(searchTerm.toLowerCase());
+    });
+  }, [sortedGuests, searchTerm, searchColumn]);
+
+  // Solicitar ordenación
+  const requestSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'ascending' ? 'descending' : 'ascending'
+    }));
+  };
+
+  // Calcular totales
   const totalAdults = guests.reduce((sum, g) => sum + (g.adult || 0), 0);
   const totalChildren = guests.reduce((sum, g) => sum + (g.children || 0), 0);
   const totalGuests = totalAdults + totalChildren;
+  const totalConfirm = guests.reduce((sum, g) => sum + (g.confirm || 0), 0);
+  const totalNoConfirm = totalGuests - totalConfirm;
+
+  // Etiquetas para columnas de búsqueda
+  const getColumnLabel = (column) => {
+    const labels = {
+      'full_name': 'nombre',
+      'username': 'usuario',
+      'adult': 'adultos',
+      'children': 'niños',
+      'confirm': 'confirmación',
+      'confirm_at': 'fecha'
+    };
+    return labels[column] || column;
+  };
 
   return (
     <ProtectedRoute>
@@ -112,29 +202,25 @@ export default function DashboardPage() {
           <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">
             Gestión de Eventos
           </h1>
-          <div className="flex flex-col md:flex-row  justify-between md:space-x-4 mb-4">
-            {/* Selección de evento */}
+          
+          {/* Selección de evento */}
+          <div className="flex flex-col md:flex-row justify-between md:space-x-4 mb-4">
             <Card className="w-[45%]">
               <CardHeader>
-                <CardTitle>Selecciona un evento:</CardTitle>
+                <CardTitle>Selecciona un evento</CardTitle>
                 <CardDescription>Elige un evento para ver sus invitados</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <Label htmlFor="event-select">Evento</Label>
-                  <Select
-                    onValueChange={handleEventChange}
-                    value={selectedEvent?.id || ""}
-                  >
+                  <Select onValueChange={handleEventChange} value={selectedEvent?.id || ""}>
                     <SelectTrigger id="event-select">
                       <SelectValue placeholder="Selecciona un evento" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="placeholder">Selecciona un evento</SelectItem>
                       {events.map((event) => (
-                        <SelectItem key={event.id} value={event.id}>
-                          {event.name}
-                        </SelectItem>
+                        <SelectItem key={event.id} value={event.id}>{event.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -154,7 +240,7 @@ export default function DashboardPage() {
                     <div>
                       <h3 className="font-semibold text-lg mb-2">{selectedEvent.title}</h3>
                       <p className="text-muted-foreground">
-                        📅 {formatDate(selectedEvent.day)} hs
+                        📅 {formatDate(selectedEvent.day)[0]} a las {formatDate(selectedEvent.day)[1]}
                       </p>
                     </div>
                   </div>
@@ -163,116 +249,109 @@ export default function DashboardPage() {
             )}
           </div>
 
-
-          {/* Selección de invitado */}
+          {/* Tabla de invitados */}
           {selectedEvent && (
             <Card className="mb-4">
               <CardHeader>
-                <CardTitle>Selecciona un invitado:</CardTitle>
-                {/* <CardDescription>Elige un invitado para ver sus detalles</CardDescription> */}
+                <CardTitle>Invitados del evento</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-neutral-400/50 rounded-lg p-4 flex flex-row md:flex-row items-start justify-between space-x-4">
-
+                {/* Resumen de invitados */}
+                <div className="bg-neutral-400/50 rounded-lg p-4 mb-4 flex justify-between items-center">
                   <div className="space-y-2">
-                    {/* <Label htmlFor="guest-select">Invitado</Label> */}
-                    <Select
-                      onValueChange={handleGuestChange}
-                      value={selectedGuest?.id || ""}
-                      disabled={!selectedEvent}
-                    >
-                      <SelectTrigger id="guest-select">
-                        <SelectValue placeholder="Selecciona un invitado" />
+                    <p className="font-semibold">Resumen de Invitados:</p>
+                    <div className="grid grid-cols-2 space-y-3">
+                      <div className="grid grid-cols-2">
+                        <p>Adultos: <span className="font-bold">{totalAdults}</span></p>
+                        <p>Niños: <span className="font-bold">{totalChildren}</span></p>
+                      </div>
+                      <p>Total: <span className="font-bold">{totalGuests}</span></p>
+                      <div className="grid grid-cols-2 space-x-4">
+                        <p>Confirmados: <span className="font-bold">{totalConfirm}</span></p>
+                        <p>Sin confirmar: <span className="font-bold">{totalNoConfirm}</span></p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Buscador */}
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder={`Buscar por ${getColumnLabel(searchColumn)}...`}
+                        className="pl-9 w-[200px]"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                      {searchTerm && (
+                        <X 
+                          className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 cursor-pointer"
+                          onClick={() => setSearchTerm('')}
+                        />
+                      )}
+                    </div>
+                    <Select value={searchColumn} onValueChange={setSearchColumn}>
+                      <SelectTrigger className="w-[150px]">
+                        <SelectValue placeholder="Buscar en..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="placeholder">Selecciona un invitado</SelectItem>
-                        {guests.map((guest) => (
-                          <SelectItem key={guest.id} value={guest.id}>
-                            {guest.full_name}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="full_name">Nombre</SelectItem>
+                        <SelectItem value="username">Usuario</SelectItem>
+                        <SelectItem value="adult">Adultos</SelectItem>
+                        <SelectItem value="children">Niños</SelectItem>
+                        <SelectItem value="confirm">Confirmación</SelectItem>
+                        <SelectItem value="confirm_at">Fecha</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div className="space-y-2">
-                    <p className="font-semibold">Resumen de Invitados:</p>
-                    <div className="grid grid-cols-2">
-                      <p>Adultos: <span className="font-bold">{totalAdults}</span></p>
-                      <p>Niños: <span className="font-bold">{totalChildren}</span></p>
-                    </div>
-                    <p>Total: <span className="font-bold">{totalGuests}</span></p>
-                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
 
-          {/* Detalles del invitado */}
-          {selectedGuest && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Detalles del Invitado:</CardTitle>
-                {/* <CardDescription>Información completa del invitado seleccionado</CardDescription> */}
-              </CardHeader>
-              <CardContent>
-                <div className="bg-neutral-400/50 rounded-lg p-4 flex flex-row md:flex-row items-start justify-between space-x-4">
-                  {/* Información del invitado */}
-                  <div className="space-y-2">
-                    <h3 className="font-semibold">Información Personal</h3>
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-medium">Usuario:</span> {selectedGuest.username}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-medium">Nombre:</span> {selectedGuest.full_name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-medium">Confirmado:</span>{" "}
-                      <span className={selectedGuest.confirm ? "text-green-600" : "text-red-600"}>
-                        {selectedGuest.confirm ? "✅ Sí" : "❌ No"}
-                      </span>
-                    </p>
-                    {selectedGuest.confirm_at && (
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-medium">Fecha:</span>{" "}
-                        {formatDate(selectedGuest.confirm_at)} hs
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Información de acompañantes */}
-                  <div className="space-y-2">
-                    <h3 className="font-semibold">Acompañantes</h3>
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-medium">Adultos:</span> {selectedGuest.adult || 0}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-medium">Niños:</span> {selectedGuest.children || 0}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-medium">Total:</span>{" "}
-                      {(selectedGuest.adult || 0) + (selectedGuest.children || 0)}
-                    </p>
-                  </div>
-
-
-                  {/* QR y acción */}
-                  <div className="flex flex-col items-center justify-center space-y-2">
-                    <div className="bg-white rounded-lg p-2">
-                      <QRCodeCanvas
-                        value={`${window.location.origin}/login/${selectedEvent.slug}?guestId=${selectedGuest.id}`}
-                        size={150}
-                        bgColor="#ffffff"
-                        fgColor="#000000"
-                        level="H"
-                        marginSize={0}
-                      />
-                    </div>
-                    <Button onClick={handleInvitationClick} >
-                      Ir a la Invitación
-                    </Button>
-                  </div>
-                </div>
+                {/* Tabla */}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {['username', 'full_name', 'adult', 'children', 'confirm', 'confirm_at'].map((column) => (
+                        <TableHead key={column}>
+                          <Button
+                            variant="ghost"
+                            onClick={() => requestSort(column)}
+                            className="p-0"
+                          >
+                            {getColumnLabel(column).charAt(0).toUpperCase() + getColumnLabel(column).slice(1)}
+                            <ArrowUpDown className="ml-1 h-3 w-3" />
+                          </Button>
+                        </TableHead>
+                      ))}
+                      <TableHead>Invitación</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredGuests.map((guest) => (
+                      <TableRow key={guest.id}>
+                        <TableCell className="text-xs text-gray-500">{guest.username}</TableCell>
+                        <TableCell className="font-medium">{guest.full_name}</TableCell>
+                        <TableCell>{guest.adult || 0}</TableCell>
+                        <TableCell>{guest.children || 0}</TableCell>
+                        <TableCell>{guest.confirm ? "✅" : "❌"}</TableCell>
+                        <TableCell>
+                          {guest.confirm_at ? (
+                            <div className="flex flex-col">
+                              <span>{formatDate(guest.confirm_at)[0]}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatDate(guest.confirm_at)[1]}
+                              </span>
+                            </div>
+                          ) : null}
+                        </TableCell>
+                        <TableCell>
+                          <GuestModal guest={guest} event={selectedEvent}>
+                            <Button variant="link" size="sm">Ver</Button>
+                          </GuestModal>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           )}
