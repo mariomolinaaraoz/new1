@@ -36,7 +36,7 @@ export default function DashboardPage() {
   const [events, setEvents] = useState([]);
   const [guests, setGuests] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
-  
+
   // Estados para búsqueda
   const [searchTerm, setSearchTerm] = useState("");
   const [searchColumn, setSearchColumn] = useState("full_name"); // Búsqueda por nombre por defecto
@@ -51,21 +51,21 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchEventsAndGuests = async () => {
       const { data: eventsData, error: eventsError } = await supabase.from("events").select("*");
-      
+
       if (eventsError) {
         console.error("Error fetching events:", eventsError.message);
         return;
       }
-      
+
       setEvents(eventsData);
-      
+
       if (eventsData?.length > 0) {
         const firstEvent = eventsData[0];
         setSelectedEvent(firstEvent);
         await fetchGuests(firstEvent.id);
       }
     };
-    
+
     fetchEventsAndGuests();
   }, []);
 
@@ -100,14 +100,26 @@ export default function DashboardPage() {
   };
 
   // Formatear fechas
-  const formatDate = (dateString) => {
-    if (!dateString) return null;
-    const date = new Date(dateString);
-    return [
-      date.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "2-digit" }),
-      date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }) + " hs."
-    ];
-  };
+const formatDate = (dateString) => {
+  if (!dateString) return null;
+
+  // Interpretar como UTC
+  const date = new Date(dateString + "Z");
+
+  return [
+    date.toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+      timeZone: "America/Argentina/Buenos_Aires",
+    }),
+    date.toLocaleTimeString("es-ES", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "America/Argentina/Buenos_Aires",
+    }) + " hs.",
+  ];
+};
 
   // Ordenar invitados
   const sortedGuests = useMemo(() => {
@@ -149,19 +161,19 @@ export default function DashboardPage() {
     return sortedGuests.filter(guest => {
       const value = guest[searchColumn];
       if (!value) return false;
-      
+
       // Búsqueda para booleanos (confirm)
       if (searchColumn === 'confirm') {
-        return searchTerm.toLowerCase() === 'si' ? guest.confirm : 
-               searchTerm.toLowerCase() === 'no' ? !guest.confirm : false;
+        return searchTerm.toLowerCase() === 'si' ? guest.confirm :
+          searchTerm.toLowerCase() === 'no' ? !guest.confirm : false;
       }
-      
+
       // Búsqueda para fechas
       if (searchColumn === 'confirm_at') {
         const dateStr = formatDate(value).join(' ').toLowerCase();
         return dateStr.includes(searchTerm.toLowerCase());
       }
-      
+
       // Búsqueda estándar
       return value.toString().toLowerCase().includes(searchTerm.toLowerCase());
     });
@@ -179,7 +191,7 @@ export default function DashboardPage() {
   const totalAdults = guests.reduce((sum, g) => sum + (g.adult || 0), 0);
   const totalChildren = guests.reduce((sum, g) => sum + (g.children || 0), 0);
   const totalGuests = totalAdults + totalChildren;
-  const totalConfirm = guests.reduce((sum, g) => sum + (g.confirm || 0), 0);  
+  const totalConfirm = guests.reduce((sum, g) => sum + (g.confirm || 0), 0);
   const totalNoConfirm = totalGuests - totalConfirm;
 
   // Etiquetas para columnas de búsqueda
@@ -202,7 +214,7 @@ export default function DashboardPage() {
           <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">
             Gestión de Eventos
           </h1>
-          
+
           {/* Selección de evento */}
           <div className="flex flex-col md:flex-row justify-between md:space-x-4 mb-4">
             <Card className="w-[45%]">
@@ -272,7 +284,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Buscador */}
                   <div className="flex items-center gap-2">
                     <div className="relative">
@@ -284,7 +296,7 @@ export default function DashboardPage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                       />
                       {searchTerm && (
-                        <X 
+                        <X
                           className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 cursor-pointer"
                           onClick={() => setSearchTerm('')}
                         />
