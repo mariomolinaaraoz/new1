@@ -107,7 +107,7 @@ export default async function LoginPage({ params, searchParams }) {
 
   const slug = awaitedParams?.slug || "";
   const guestId = awaitedSearchParams?.guestId || "";
-  
+
   if (!slug || !guestId) {
     return (
       <div className="flex bg-gradient-to-br from-blue-100 to-indigo-100 justify-center min-h-screen items-center p-4">
@@ -144,7 +144,7 @@ export default async function LoginPage({ params, searchParams }) {
     );
   }
 
-  if (event.active===false) {
+  if (event.active === false) {
     return (
       <div className="flex bg-gradient-to-br from-blue-100 to-indigo-100 justify-center min-h-screen items-center p-4">
         <Card className="w-[95%] max-w-md p-6 text-center">
@@ -155,7 +155,7 @@ export default async function LoginPage({ params, searchParams }) {
     );
   }
 
-  if (guest.confirm===false) {
+  if (guest.confirm === false) {
     return (
       <div className="flex bg-gradient-to-br from-blue-100 to-indigo-100 justify-center min-h-screen items-center p-4">
         <Card className="w-[95%] max-w-md p-6 text-center">
@@ -259,8 +259,8 @@ export default async function LoginPage({ params, searchParams }) {
                 </h3>
 
                 <p className="mt-1 sm:mt-1 text-gray-500 text-xs sm:text-sm mb-2 sm:mb-2">
-                  Válido por {guest.adult} adulto/s
-                  {guest.children === null && ` y ${guest.children} niño/s.`}
+                  Válido por {guest.adult} adulto{guest.adult !== 1 ? 's' : ''}
+                  {guest.children && guest.children > 0 && ` y ${guest.children} niño${guest.children !== 1 ? 's' : ''}`}
                 </p>
 
                 <div className="w-16 sm:w-24 h-1 bg-pink-500 mx-auto mb-3 sm:mb-4"></div>
