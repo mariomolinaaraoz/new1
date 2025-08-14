@@ -7,7 +7,7 @@ export default async function Home() {
   // ✅ Esperar a headers()
   const headersList = await headers();
   const userAgent = headersList.get("user-agent") || "";
-  const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(userAgent);
+  const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(userAgent);  
 
   return (
     <div>

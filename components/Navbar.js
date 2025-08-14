@@ -1,13 +1,7 @@
 "use client";
-
-import { createClient } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
 
 export default function Navbar({ event }) {
   const [user, setUser] = useState(null);
@@ -127,11 +121,11 @@ export default function Navbar({ event }) {
             {user ? (
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-700">
-                  {userProfile?.full_name || user.email || 'Usuario'}
+                  {userProfile?.full_name.split(' ')[0] || user.email || 'Usuario'}
                 </span>
                 <button
                   onClick={handleLogout}
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   Salir
                 </button>
@@ -139,7 +133,7 @@ export default function Navbar({ event }) {
             ) : (
               <button
                 onClick={() => router.push('/login')}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Iniciar Sesión
               </button>
